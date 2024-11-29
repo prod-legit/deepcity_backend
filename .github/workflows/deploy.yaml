@@ -1,0 +1,80 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag for deploy"
+        default: latest
+        type: string
+        required: false
+
+  workflow_call:
+    inputs:
+      image_tag:
+        description: "Image tag for deploy"
+        type: string
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    env:
+      PULL_SECRET: gh-pull-secret
+      RELEASE_NAME: ${{ vars.RELEASE_NAME || 'deepcity-backend' }}
+      RELEASE_NAMESPACE: ${{ vars.RELEASE_NAMESPACE || 'deepcity' }}
+      INGRESS_DOMAIN: ${{ vars.INGRESS_DOMAIN }}
+      INGRESS_PATH: ${{ vars.INGRESS_PATH || '/' }}
+      INGRESS_TLS_SECRET_NAME: ${{ vars.INGRESS_TLS_SECRET_NAME }}
+      DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+      DATABASE_USER: ${{ secrets.DATABASE_USER }}
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+
+    steps:
+      - name: Checkout helm chart
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            helm
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4.2.0
+        with:
+          version: 3.15.2
+
+      - name: Set the Kubernetes context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: service-account
+          k8s-url: ${{ secrets.KUBERNETES_URL }}
+          k8s-secret: ${{ secrets.KUBERNETES_SECRET }}
+
+      - name: Create pull secret
+        uses: Azure/k8s-create-secret@v5
+        with:
+            container-registry-url: ghcr.io
+            container-registry-username: ${{ github.repository_owner }}
+            container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+            secret-name: ${{ env.PULL_SECRET }}
+            namespace: ${{ env.RELEASE_NAMESPACE }}
+
+      - name: Deploy to k8s
+        run: |
+          helm upgrade --install ${{ env.RELEASE_NAME }} ./helm \
+            -n ${{ env.RELEASE_NAMESPACE }} \
+            --set image.tag="${{ inputs.image_tag }}" \
+            --set imagePullSecrets[0].name="${{ env.PULL_SECRET }}" \
+            --set config.database_host="${{ env.DATABASE_HOST }}" \
+            --set config.database_name="${{ env.DATABASE_NAME }}" \
+            --set config.database_user="${{ env.DATABASE_USER }}" \
+            --set config.database_password="${{ env.DATABASE_PASSWORD }}" \
+            --set ingress.enabled=true \
+            --set ingress.domain="${{ env.INGRESS_DOMAIN }}" \
+            --set ingress.path="${{ env.INGRESS_PATH }}" \
+            --set ingress.tlsSecretName="${{ env.INGRESS_TLS_SECRET_NAME }}"

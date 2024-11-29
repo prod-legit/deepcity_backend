@@ -1,0 +1,47 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-stripprefix
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+spec:
+  stripPrefix:
+    prefixes:
+      - {{ .Values.ingress.path }}
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "{{ .Release.Name }}-ingress"
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.clusterIssuer }}
+    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Namespace }}-{{ .Release.Name }}-stripprefix@kubernetescrd
+spec:
+  ingressClassName: traefik
+  {{- if .Values.ingress.tlsSecretName }}
+  tls:
+    - hosts:
+        - "{{ .Values.ingress.domain }}"
+      secretName: "{{ .Values.ingress.tlsSecretName }}"
+  {{- end }}
+  rules:
+    - host: "{{ .Values.ingress.domain }}"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "{{ .Values.ingress.path }}"
+            backend:
+              service:
+                name: "{{ .Release.Name }}-service"
+                port:
+                  number: 80
+{{- end }}
