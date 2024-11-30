@@ -8,7 +8,7 @@ class IQuery(ABC):  # noqa: B024
 
 
 @dataclass(eq=False, frozen=True)
-class IUseCase[T](ABC):
+class IQueryUseCase[T](ABC):
     @abstractmethod
     async def execute(self, query: IQuery) -> T:
         pass
