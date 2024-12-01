@@ -8,7 +8,7 @@ class ICommand(ABC):  # noqa: B024
 
 
 @dataclass(eq=False, frozen=True)
-class IUseCase[T](ABC):
+class ICommandUseCase[T](ABC):
     @abstractmethod
     async def execute(self, command: ICommand) -> T:
         pass

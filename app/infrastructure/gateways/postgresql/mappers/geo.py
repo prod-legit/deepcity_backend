@@ -8,6 +8,8 @@ class GeoORMMapper(IORMMapper[GeoEntity, GeoORM]):
     def from_entity(entity: GeoEntity) -> GeoORM:
         return GeoORM(
             id=entity.id,
+            name=entity.name,
+            type=entity.type,
             geojson=entity.geojson
         )
 
@@ -15,5 +17,7 @@ class GeoORMMapper(IORMMapper[GeoEntity, GeoORM]):
     def to_entity(orm: GeoORM) -> GeoEntity:
         return GeoEntity(
             id=orm.id,
+            name=orm.name,
+            type=orm.type,
             geojson=orm.geojson
         )
