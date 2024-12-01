@@ -27,7 +27,7 @@ spec:
       containers:
       - name: backend
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        args: ["--root-path", {{ .Values.ingress.path }}]
+        args: ["--root-path", "{{ .Values.ingress.path }}", "--forwarded-allow-ips", "{{ .Values.ingress.proxyIps }}"]
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
           - containerPort: 8000
