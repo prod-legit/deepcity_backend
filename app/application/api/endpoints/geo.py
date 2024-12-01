@@ -6,7 +6,9 @@ from fastapi import APIRouter, Path
 from pydantic import UUID4
 
 from app.application.api.schemas.geo import GeoSchema, AddGeoSchema, PatchGeoSchema
+from app.application.api.schemas.status import StatusSchema
 from app.logic.commands.geo.add import AddGeoCommandUseCase, AddGeoCommand
+from app.logic.commands.geo.delete import DeleteGeoCommandUseCase, DeleteGeoCommand
 from app.logic.commands.geo.patch import PatchGeoCommand, PatchGeoCommandUseCase
 from app.logic.queries.geo.get import GetGeoQueryUseCase, GetGeoQuery
 from app.logic.queries.geo.get_all import GetGeosQueryUseCase, GetGeosQuery
@@ -78,3 +80,17 @@ async def patch_geo(
         geojson=data.geojson
     ))
     return GeoSchema.from_entity(geo)
+
+
+@router.delete(
+    path="/{geo_id}",
+    operation_id="deleteGeo",
+    summary="Удалить объект",
+    response_model=StatusSchema
+)
+async def delete_geo(
+        geo_id: Annotated[UUID4, Path()],
+        delete_geo_use_case: FromDishka[DeleteGeoCommandUseCase]
+) -> StatusSchema:
+    await delete_geo_use_case.execute(DeleteGeoCommand(id=geo_id))
+    return StatusSchema(status=True, message="Geo deleted")

@@ -1,7 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 
-from sqlalchemy import select, exists, update
+from sqlalchemy import select, exists, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities.geo import GeoEntity
@@ -19,6 +19,8 @@ class IGeoRepository(ABC):
     async def get_all(self) -> list[GeoEntity]: ...
 
     async def name_exists(self, name: str) -> bool: ...
+
+    async def delete(self, id_: str) -> None: ...
 
 
 @dataclass(eq=False, frozen=True)
@@ -60,3 +62,10 @@ class SqlAlchemyGeoRepository(IGeoRepository):
             .where(GeoORM.name == name)
         )
         return await self.session.scalar(stmt)
+
+    async def delete(self, id_: str) -> None:
+        stmt = (
+            delete(GeoORM)
+            .where(GeoORM.id == id_)
+        )
+        await self.session.scalar(stmt)
