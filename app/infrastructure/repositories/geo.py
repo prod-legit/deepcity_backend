@@ -68,4 +68,4 @@ class SqlAlchemyGeoRepository(IGeoRepository):
             delete(GeoORM)
             .where(GeoORM.id == id_)
         )
-        await self.session.scalar(stmt)
+        await self.session.execute(stmt)
